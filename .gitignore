@@ -1,0 +1,6 @@
+nju-compiler-test-master/
+src/*.o
+src/*.d
+src/parser
+src/syntax.tab.*
+src/lex.yy.c
