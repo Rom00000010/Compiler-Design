@@ -4,3 +4,5 @@ src/*.d
 src/parser
 src/syntax.tab.*
 src/lex.yy.c
+.vscode/
+src/submit.zip
