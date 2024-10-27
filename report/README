@@ -1,0 +1,24 @@
+CC = gcc
+BISON = bison
+BFLAGS = -d -v
+LIBS = -lfl -ly
+TARGET = parser
+
+all: $(TARGET)
+
+lex: lexical_analysis.l
+	flex lexical_analysis.l
+
+$(TARGET): lex syntax.tab.c main.c syntax_tree.c 
+	$(CC) syntax_tree.c syntax.tab.c main.c $(LIBS) -g -o $(TARGET)
+
+syntax.tab.c: syntax.y
+	$(BISON) $(BFLAGS) syntax.y
+
+debug:
+	gdb -x init.gdb
+
+clean:
+	rm -f syntax.tab.c syntax.tab.h syntax.output $(TARGET)
+
+.PHONY: clean
