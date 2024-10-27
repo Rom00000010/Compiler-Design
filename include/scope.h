@@ -58,7 +58,6 @@ void freeScope(Scope *scope)
 {
     free(((structScope *)scope)->name);
     freeSymbolTable(((structScope *)scope)->table);
-    free((structScope *)scope);
 }
 
 int define(Scope *scope, char *name, Symbol *sym)

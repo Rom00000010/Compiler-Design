@@ -104,7 +104,9 @@ void varDecHandler(SyntaxTreeNode *varDecNode, Type currentType, int mode, Type 
         if (mode == 0)
             define(currentScope, name, varSymbol);
         else if (mode == 1)
+        {
             addField(structType, name, currentType, idNode->line);
+        }
     }
 
     //  recursive dimension
@@ -120,28 +122,24 @@ void decListHandler(SyntaxTreeNode *decListNode, Type currentType, int mode, Typ
     // current var
     SyntaxTreeNode *varDecNode = decListNode->children[0];
 
-    // 错误类型15: 在定义时对域进行初始化（例如struct A { int a = 0; }）
-    if (varDecNode->childCount == 3 && mode)
-    {
-        error(15, varDecNode->line, "Initializing field when define struct", varDecNode->children[0]->children[0]->lexeme);
-        goto next;
-    }
     //  dec instead of vardec
     if (strcmp(varDecNode->label, "Dec") == 0)
     {
         varDecHandler(varDecNode->children[0], currentType, mode, structType);
-        if (varDecNode->childCount == 3 && !mode)
+        // 错误类型15: 在定义时对域进行初始化（例如struct A { int a = 0; }）
+        if (varDecNode->childCount == 3 && mode)
         {
-            varSymbol* sym = expHandler(varDecNode->children[2]);
-            if(sym == NULL)
-            {
-                return;
-            }
-            if(!equal(sym->type ,currentType))
+            error(15, varDecNode->line, "Initializing field when define struct", varDecNode->children[0]->children[0]->lexeme);
+        }
+        else if (varDecNode->childCount == 3 && !mode)
+        {   
+            // local variable declaration and assignment
+            varSymbol *sym = expHandler(varDecNode->children[2]);
+            if (sym!=NULL && !equal(sym->type, currentType))
             {
                 error(5, varDecNode->children[2]->line, "Type mismatch", "");
             }
-        }   
+        }
     }
     else
         varDecHandler(varDecNode, currentType, mode, structType);
@@ -187,7 +185,7 @@ void varDefHandler(SyntaxTreeNode *node, Type structType, int mode)
     decListHandler(decListNode, currentType, mode, structType);
 }
 
-// ----------------------------------------------------------------
+// ---------------------------------------------------------------- ⬆ Global Variables Definition
 
 void paramVarDecHandler(SyntaxTreeNode *node, Type currentType, char **param, Type *paramType, int paramCnt)
 {
@@ -264,7 +262,7 @@ void funcDefHandler(SyntaxTreeNode *node)
     {
         retType = createBasicType((strcmp(typeNode->lexeme, "int") == 0) ? 1 : 2);
     }
-    else if (typeNode->children[1]->label == "Tag")
+    else if (strcmp(typeNode->children[1]->label,"Tag") == 0)
     {
         char *structName = typeNode->children[1]->children[0]->lexeme;
         Symbol *sym = resolve(stack, currentScope, structName);
@@ -311,7 +309,7 @@ void funcDefHandler(SyntaxTreeNode *node)
     defListHandler(compStNode->children[1], NULL);
 }
 
-// ----------------------------------------------------------------
+// ---------------------------------------------------------------- ⬆ Function Definition
 
 void defListHandler(SyntaxTreeNode *node, Type structType)
 {
@@ -350,8 +348,7 @@ Type structDefHandler(SyntaxTreeNode *node, Type recurStructType)
             error(16, node->line, "multiple definition of struct", name);
 
         Symbol *symbol = createStructSymbol(name, structType);
-        if (recurStructType == NULL)
-            define(currentScope, name, symbol);
+        define(currentScope, name, symbol);
         return structType;
     }
 }
@@ -367,7 +364,7 @@ void programHandler()
     define(currentScope, "float", floatSym);
 }
 
-// ----------------------------------------------------------------
+// ---------------------------------------------------------------- ⬆ Struct Definition
 
 varSymbol *expHandler(SyntaxTreeNode *node);
 void argsHandler(SyntaxTreeNode *node, Type *types, int argc, int num)
@@ -574,7 +571,7 @@ varSymbol *expHandler(SyntaxTreeNode *node)
                 return NULL;
             }
             Type newType = symArray->type->u.array.elem;
-            varSymbol *newSym = (varSymbol*)createVarSymbol("temp", newType);
+            varSymbol *newSym = (varSymbol *)createVarSymbol("temp", newType);
             return newSym;
         }
 
@@ -601,7 +598,7 @@ varSymbol *expHandler(SyntaxTreeNode *node)
                 error(14, node->line, "No such field in structure", fieldName);
                 return NULL;
             }
-            varSymbol *sym = (varSymbol*)createVarSymbol(fieldName, type);
+            varSymbol *sym = (varSymbol *)createVarSymbol(fieldName, type);
 
             return sym;
         }
@@ -638,7 +635,7 @@ varSymbol *expHandler(SyntaxTreeNode *node)
     }
 }
 
-// ----------------------------------------------------------------
+// ---------------------------------------------------------------- ⬆ EXP
 
 void nodeBeforeHandler(SyntaxTreeNode *node)
 {
@@ -724,9 +721,11 @@ void nodeAfterHandler(SyntaxTreeNode *node)
         }
         else if (strcmp(defNode->label, "FunDec") == 0)
         {
-            // freeScope(currentScope);
             if (strcmp(defNode->children[0]->lexeme, ((structScope *)currentScope)->name) == 0)
+            {
+                // freeScope(currentScope);
                 currentScope = popScope(stack);
+            }
         }
         else if (strcmp(defNode->label, "SEMI") == 0)
         {
